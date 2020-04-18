@@ -18,12 +18,14 @@ type Queue struct {
 	Prefetch       int
 	Parallelism    int
 	MessageTTL     int
+	UseDLX         bool
 	FailureTimeout time.Duration
 	Processor      Processor
 }
 
 type AMQPConsumer struct {
 	url    string
+	dlx    string
 	queues []Queue
 	log    logger
 	wg     sync.WaitGroup
@@ -32,11 +34,12 @@ type AMQPConsumer struct {
 }
 
 // NewAMQPConsumer constructs AMQP consumer and starts message processing routine
-func NewAMQPConsumer(ctx context.Context, url string, queues []Queue, log logger) *AMQPConsumer {
+func NewAMQPConsumer(ctx context.Context, url, dlx string, queues []Queue, log logger) *AMQPConsumer {
 	ctx, cancel := context.WithCancel(ctx)
 
 	c := &AMQPConsumer{
 		url:    url,
+		dlx:    dlx,
 		queues: queues,
 		log:    log,
 		ctx:    ctx,
@@ -101,6 +104,12 @@ func (c *AMQPConsumer) serve() error {
 	// wait for all individual queue consumers to stop before returning
 	defer wg.Wait()
 
+	// dead letter queue
+	err = c.setupDeadLetterQueue(conn)
+	if err != nil {
+		return err
+	}
+
 	// create context for current connection attempt
 	ctx, cancel := context.WithCancel(c.ctx)
 
@@ -159,6 +168,20 @@ func (c *AMQPConsumer) consume(ctx context.Context, queue Queue, conn *amqp.Conn
 	defer ch.Close()
 
 	if err := ch.Qos(queue.Prefetch, 0, false); err != nil {
+		return err
+	}
+
+	// declare queue
+	queueArgs := amqp.Table{}
+	if queue.UseDLX {
+		queueArgs["x-dead-letter-exchange"] = c.dlx
+	}
+	if queue.MessageTTL > 0 {
+		queueArgs["x-message-ttl"] = queue.MessageTTL
+	}
+
+	_, err = ch.QueueDeclare(queue.Name, true, false, false, false, queueArgs)
+	if err != nil {
 		return err
 	}
 
@@ -286,4 +309,27 @@ func headers(d amqp.Delivery) map[string]string {
 	}
 
 	return h
+}
+
+func (c *AMQPConsumer) setupDeadLetterQueue(conn *amqp.Connection) error {
+	if c.dlx == "" {
+		return nil
+	}
+
+	ch, err := conn.Channel()
+	if err != nil {
+		return err
+	}
+
+	err = ch.ExchangeDeclare(c.dlx, "fanout", true, false, false, false, amqp.Table{})
+	if err != nil {
+		return err
+	}
+
+	_, err = ch.QueueDeclare(c.dlx, true, false, false, false, amqp.Table{})
+	if err != nil {
+		return err
+	}
+
+	return ch.QueueBind(c.dlx, "", c.dlx, false, amqp.Table{})
 }

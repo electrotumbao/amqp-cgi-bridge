@@ -19,6 +19,7 @@ var commit = "unknown"
 
 var config struct {
 	AMQPURL string `yaml:"amqp_url"`
+	DLX     string
 	Env     map[string]string
 	FastCGI struct {
 		Net        string
@@ -27,6 +28,7 @@ var config struct {
 	}
 	Consumers []struct {
 		Queue          string
+		UseDLX         *bool `yaml:"use_dlx"`
 		MessageTTL     int   `yaml:"message_ttl"`
 		Prefetch       *int
 		Parallelism    int
@@ -133,17 +135,23 @@ func main() {
 			c.FailureTimeout = 10 * time.Second
 		}
 
+		if c.UseDLX == nil {
+			DLXEnabled := config.DLX != ""
+			c.UseDLX = &DLXEnabled
+		}
+
 		queues = append(queues, bridge.Queue{
 			Name:           c.Queue,
 			Prefetch:       *c.Prefetch,
 			Parallelism:    c.Parallelism,
 			MessageTTL:     c.MessageTTL,
+			UseDLX:         *c.UseDLX,
 			FailureTimeout: c.FailureTimeout,
 			Processor:      p,
 		})
 	}
 
-	cons := bridge.NewAMQPConsumer(ctx, config.AMQPURL, queues, logger.Channel("amqp"))
+	cons := bridge.NewAMQPConsumer(ctx, config.AMQPURL, config.DLX, queues, logger.Channel("amqp"))
 
 	signals := make(chan os.Signal)
 	signal.Notify(signals, os.Interrupt, os.Kill)
