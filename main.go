@@ -4,22 +4,30 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/skolodyazhnyy/amqp-cgi-bridge/bridge"
-	"github.com/skolodyazhnyy/go-common/log"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/electrotumbao/amqp-cgi-bridge/bridge"
+	"github.com/skolodyazhnyy/go-common/log"
+	"gopkg.in/yaml.v2"
 )
 
 var version = "unknown"
 var commit = "unknown"
 
 var config struct {
-	AMQPURL   string `yaml:"amqp_url"`
+	AMQPURL string `yaml:"amqp_url"`
+	Env     map[string]string
+	FastCGI struct {
+		Net        string
+		Addr       string
+		ScriptName string `yaml:"script_name"`
+	}
 	Consumers []struct {
 		Queue          string
+		MessageTTL     int   `yaml:"message_ttl"`
 		Prefetch       *int
 		Parallelism    int
 		FailureTimeout time.Duration
@@ -66,17 +74,29 @@ func main() {
 	ctx := context.Background()
 	var queues []bridge.Queue
 
+	if config.FastCGI.Net == "" {
+		config.FastCGI.Net = "tcp"
+	}
+
+	if config.FastCGI.Addr == "" {
+		config.FastCGI.Addr = "127.0.0.1:9000"
+	}
+
+	if config.FastCGI.ScriptName == "" {
+		config.FastCGI.ScriptName = "index.php"
+	}
+
 	for _, c := range config.Consumers {
 		if c.FastCGI.Net == "" {
-			c.FastCGI.Net = "tcp"
+			c.FastCGI.Net = config.FastCGI.Net
 		}
 
 		if c.FastCGI.Addr == "" {
-			c.FastCGI.Addr = "127.0.0.1:9000"
+			c.FastCGI.Addr = config.FastCGI.Addr
 		}
 
 		if c.FastCGI.ScriptName == "" {
-			c.FastCGI.ScriptName = "index.php"
+			c.FastCGI.ScriptName = config.FastCGI.ScriptName
 		}
 
 		p := bridge.NewFastCGIProcessor(
@@ -88,8 +108,17 @@ func main() {
 			}),
 		)
 
+		env := config.Env
+		if env == nil {
+			env = map[string]string{}
+		}
 		if c.Env != nil {
-			p = bridge.ProcessorWithEnv(p, c.Env)
+			for k, v := range c.Env {
+				env[k] = v
+			}
+		}
+		if len(env) > 0 {
+			p = bridge.ProcessorWithEnv(p, env)
 		}
 
 		if c.Parallelism <= 0 {
@@ -108,6 +137,7 @@ func main() {
 			Name:           c.Queue,
 			Prefetch:       *c.Prefetch,
 			Parallelism:    c.Parallelism,
+			MessageTTL:     c.MessageTTL,
 			FailureTimeout: c.FailureTimeout,
 			Processor:      p,
 		})

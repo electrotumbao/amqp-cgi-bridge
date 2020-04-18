@@ -3,11 +3,12 @@ package bridge
 import (
 	"context"
 	"fmt"
-	"github.com/streadway/amqp"
-	"golang.org/x/sync/errgroup"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/streadway/amqp"
+	"golang.org/x/sync/errgroup"
 )
 
 type Processor func(ctx context.Context, headers map[string]string, body []byte) error
@@ -16,6 +17,7 @@ type Queue struct {
 	Name           string
 	Prefetch       int
 	Parallelism    int
+	MessageTTL     int
 	FailureTimeout time.Duration
 	Processor      Processor
 }
