@@ -1,0 +1,14 @@
+github.com/skolodyazhnyy/amqp-cgi-bridge v0.0.0-20180717002035-81c12303bf49 h1:M+2ayjAQ/WksUEwVAPjguW0pckqIsZsnvLmAIxmsVMA=
+github.com/skolodyazhnyy/amqp-cgi-bridge v0.0.0-20180717002035-81c12303bf49/go.mod h1:Y572fPcKhku59pefqDALqkKjzjuAz+vqOIh0nPjx2Ow=
+github.com/skolodyazhnyy/go-common v0.0.0-20190702235652-a93103cdc283 h1:5Yb4+F7Wu91xEKAu+Sn/m2Ok+nJoHV5CsqIObbfvO90=
+github.com/skolodyazhnyy/go-common v0.0.0-20190702235652-a93103cdc283/go.mod h1:TydGBbuK6DukP/fMMaGHdqnQSxUtk9xxspp/Vi3Ojhs=
+github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71 h1:2MR0pKUzlP3SGgj5NYJe/zRYDwOu9ku6YHy+Iw7l5DM=
+github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71/go.mod h1:AZpEONHx3DKn8O/DFsRAY58/XVQiIPMTMB1SddzLXVw=
+github.com/tomasen/fcgi_client v0.0.0-20180423082037-2bb3d819fd19 h1:ZCmSnT6CLGhfoQ2lPEhL4nsJstKDCw1F1RfN8/smTCU=
+github.com/tomasen/fcgi_client v0.0.0-20180423082037-2bb3d819fd19/go.mod h1:SXTY+QvI+KTTKXQdg0zZ7nx0u94QWh8ZAwBQYsW9cqk=
+golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e h1:vcxGaoTs7kV8m5Np9uUNQin4BrLOthgV7252N8V+FwY=
+golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
+gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
+gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
+gopkg.in/yaml.v2 v2.2.8 h1:obN1ZagJSUGI0Ek/LBmuj4SNLPfIny3KsKFopxRdj10=
+gopkg.in/yaml.v2 v2.2.8/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
