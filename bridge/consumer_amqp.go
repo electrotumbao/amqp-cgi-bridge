@@ -204,6 +204,17 @@ loop:
 				break loop
 			}
 
+			if d.Redelivered {
+				c.log.Debugf("Rejecting redelivered message")
+
+				err = d.Reject(false)
+				if err != nil {
+					c.log.Debugf("Redelivered message rejected with error: %v", err)
+				}
+
+				break loop
+			}
+
 			sem <- struct{}{}
 
 			eg.Go(func() error {
@@ -222,16 +233,8 @@ loop:
 				switch err {
 				case nil: // 2xx
 					c.log.Debug("Message successfully processed", logctx)
-
-					if err := d.Ack(false); err != nil {
-						return err
-					}
 				case ErrProcessingError: // 4xx error
-					c.log.Debug(fmt.Sprintf("Message processed with error: %v", err), logctx)
-
-					if err := d.Reject(false); err != nil {
-						return err
-					}
+					fallthrough
 				case ErrProcessingFailed: // 5xx error
 					fallthrough
 				case ErrUnknownStatus: // status code is missing (could be 2xx, could be fatal error)
@@ -239,18 +242,11 @@ loop:
 				case ErrProcessorInternal: // could not perform request
 					fallthrough
 				default:
-					t := queue.FailureTimeout
-					c.log.Error(fmt.Sprintf("Message processing failed: %v. Waiting %v before putting message back to the queue.", err, t), logctx)
-
-					// wait a bit before putting message back to the queue
-					wait(ctx, t)
-
-					if err := d.Reject(true); err != nil {
-						return err
-					}
+					c.log.Debug(fmt.Sprintf("Message processed with error: %v", err), logctx)
 				}
 
-				return nil
+				// error is also result
+				return d.Ack(false)
 			})
 		}
 	}
